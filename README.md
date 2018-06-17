@@ -1,5 +1,5 @@
 # Tencent_Social_Ads2018
-2018腾讯社交广告33名的nn方案,单模75+
+2018腾讯社交广告33名的nn方案,单模75+(主要是分享下方案和pytorch的网络，给出的代码凭着感觉整理的，估计有很多bug。。。)
 # 特征工程
 - 原始特征低频hash处理
 - 多值特征训练时truncate、网络里做pooling,truncate 参数如下：
@@ -22,10 +22,11 @@
 - cin(xdeepfm,复现参考的tensorflow版，跟原论文有点出入)
 - din(代替多值特征的mean pooling,max pooling没有尝试，目前网络支持mean pooling 和din共存;复现参考的tensorflow版，跟原论文有点出入)
 - dnn
-# 训练过程:
-
+# 训练过程（主要解释TSADSDataset.py）:
+  1. pytorch的DataLoader在多进程使用时会出现copy and write的情况（其实这个情况我暂时没有搞的明白，尝试了很多写法都没有解决），初赛数据直接就可以训练了，复赛数据压根训不起来，所以对需要训练的数据切分成10分，分10份依次训练。
+  1. 为了处理多值特征偏长的情况（其实如果其他特征工程做得好的话，truncate直接取10差不多的），对于每个多值特征采用字符串的形式保存，并做训练时解析、random truncate.
 # 训练时间：
-  一个epoch，4核大概1-1.5小时
+  总共5个epoch收敛，每个epoch在4核大概1-1.5小时
 # 损失函数
 - 交叉熵ce
 - focalloss(这个线下精细调参的话可以比ce的1个千，但直接用跟ce同样参数一般都是掉几个千)，主要用于融合
@@ -36,7 +37,7 @@
 - sklearn:0.19.1
 - glob
 - GPU:  12G(8G的应该能跑，训练集batch_size=8192时，训练显存占用5G+,验证的batch_size调小应该可以的)
-- Memory: >140G(主要是多值特征编码合并多列时需要用较大的内存)
+- Memory: >140G(主要是多值特征编码合并多列时需要用较大的内存，训练时130G内存可以同时训练2个)
 - disk: about 300G（tmp文件夹就有200+G主要是一些临时文件想重复用就没删掉）
 - number of process: >4(单核能跑，只是比较慢)
 # 目录介绍
@@ -82,6 +83,5 @@
     - pre_merged_cate.csv:merge后的初赛类别特征原始数据
     - labels.pkl: 复赛的标签
     - pre_labels.pkl:初赛的标签
-    
-    
-  
+# 最终成绩
+类似k折验证训练了10+个模型，融合lgb,libffm，线上auc:0.7609
